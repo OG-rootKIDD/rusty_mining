@@ -1,0 +1,16 @@
+{
+    "profiles": [
+        {
+            "profile_name": "miner_profile",
+            "path": "C:\\Some\\Path",
+            "file": "miner.exe",
+            "algorithm": "autolykos2",
+            "url": "stratum+ssl://autolykos-eu.unmineable.com:443",
+            "coin": "Coin",
+            "wallet_address": "somelongbtcwalletaddressthatdonotwork!",
+            "worker_name": "worker1",
+            "devices": "0",
+            "additionals": ""
+        }
+    ]
+}
