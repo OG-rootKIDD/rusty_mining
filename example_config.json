@@ -1,7 +1,7 @@
 {
     "profiles": [
         {
-            "profile_name": "Miner profile #1",
+            "profile_name": "miner_profile",
             "path": "C:\\Some\\Path",
             "file": "miner.exe",
             "algorithm": "autolykos2",

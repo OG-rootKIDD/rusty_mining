@@ -1,8 +1,16 @@
-use rusty_mining::mining::{ print_config, read_profiles_from_config, config::Config };
+use rusty_mining::mining::{ run_profile, config::read_profiles_from_config };
+use std::{thread, time::Duration};
 
 fn main() {
     println!("Rusty Mining");
-    let mut miner_config = Config{ profiles : vec![] };
-    read_profiles_from_config(&mut miner_config, false);
-    print_config(miner_config);
+    let miner_config = read_profiles_from_config(false);
+    miner_config.profiles.iter().for_each(|profile| {
+        let local_thread_profile = profile.clone();
+        let handle = thread::spawn(|| {
+            run_profile(local_thread_profile);
+        });
+        while handle.is_finished() != true {
+            thread::sleep(Duration::from_secs(10));
+        }
+    });
 }
