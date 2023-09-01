@@ -14,7 +14,7 @@ pub struct Profile{
     pub additionals: String,
 }
 
-pub fn print_profile(p: &Profile) {
+pub fn print_profile(p: Profile) {
     if p.additionals.len() > 0 {
         println!("{}\\{} -a {} -o {} -u {}:{}.{} -d {} {}", p.path, p.file, p.algorithm, p.url, p.coin, p.wallet_address, p.worker_name, p.devices, p.additionals);
     }else {

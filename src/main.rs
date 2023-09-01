@@ -1,39 +1,56 @@
-use rusty_mining::mining::{ run_profile, read_profiles_from_config, cmd_args::* };
-use std::{thread, time::Duration, thread::JoinHandle };
+use rusty_mining::mining::{ read_profiles_from_config, config_last_modified, cmd_args::build_cmd};
+use std::{thread, time::{Duration, SystemTime}, process::Command};
+use sysinfo::{ProcessExt, Signal, System, SystemExt};
 
 fn main() {
-    println!("Rusty Mining");
-    let miner_config = read_profiles_from_config(false);
-    miner_config.profiles.iter().for_each(|profile| {
-        let local_thread_profile = profile.clone();
-        run_profile(local_thread_profile);
-    });
-    //run_miners(miner_config);
+    let mut config_read = config_last_modified();
+    let mut start_miners = true;
+
+    loop {
+        let profiles = &read_profiles_from_config().profiles;
+        if start_miners {
+            profiles.iter().for_each(|profile| {
+                let local_profile = profile.clone();
+                println!("[Main Thread] Starting miner thread for profile: {}.", local_profile.profile_name);
+                println!("[Mining Thread: {}] Initializing...", local_profile.profile_name);
+                let _ = Command::new("cmd")
+                    .args([build_cmd(&local_profile)])
+                    .spawn()
+                    .expect(format!("[Mining Thread: {}] Failed to start...", local_profile.profile_name).as_str());
+            });
+            start_miners = false;
+        }
+
+        if config_has_changed(config_read) {
+            config_read = config_last_modified();
+            println!("[Main Thread] Config has changed... Stopping miners...");
+            let mut found = true;
+            while found {
+                found = false;
+                let s = System::new_all();
+                s.processes().iter().for_each(|p|{
+                    profiles.iter().for_each(|profile| {
+                        let local_profile = profile.clone();
+                        let process_name = p.1.name();
+                        if local_profile.file == process_name {
+                            found = true;
+                            println!("[Main Thread] killing process {}", process_name);
+                            p.1.kill_with(Signal::Kill);
+                        }
+                    });
+                });
+                thread::sleep(Duration::from_secs(5));
+            }
+            start_miners = true;
+            println!("[Main Thread] Idle for 1 minute before restarting miners.");
+        }
+        thread::sleep(Duration::from_secs(60));
+    }
 }
 
-fn run_miners(miner_config: rusty_mining::mining::config::Config) {
-    let mut join_handles: Vec<JoinHandle<()>>= vec![];
-    let mut active_handles = 0;
-    miner_config.profiles.iter().for_each(|profile| {
-        let local_thread_profile = profile.clone();
-        let handle = thread::spawn(|| {
-            run_profile(local_thread_profile);
-        });
-        join_handles.push(handle);
-        active_handles += 1;
-    });
-    let mut active_handles_changed = false;
-    while active_handles > 0 {
-        for h in join_handles.iter() {
-            if h.is_finished() {
-                active_handles -= 1;
-                active_handles_changed = true;
-            }
-        }
-        if active_handles_changed {
-            println!("Active CPU threads running miners: {}", active_handles);
-            active_handles_changed = false;
-        }
-        thread::sleep(Duration::from_secs(1));
-    }
+fn config_has_changed(config_read: SystemTime) -> bool {
+    config_last_modified()
+    .duration_since(config_read)
+    .expect("[Main Thread] Could not compare config last modified times.")
+    .is_zero() == false
 }

@@ -8,6 +8,6 @@ pub struct Config {
 
 pub fn print_config(configs: Config) {
     configs.profiles.iter().for_each(|p| {
-        print_profile(p);
+        print_profile(p.clone());
     });
 }
